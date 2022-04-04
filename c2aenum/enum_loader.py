@@ -11,17 +11,19 @@ class C2aEnum:
         self.path = c2a_src_path
         self.encoding = encoding
 
+        files_tmp = [p.replace("\\", "/") for p in glob.glob(self.path + "/**", recursive=True)]
+
         files = [
             p
-            for p in glob.glob(self.path + "/**", recursive=True)
-            if re.fullmatch(r".*(\.(c|cc|cpp|h|hh|hpp))$", p)
+            for p in files_tmp
+            if re.fullmatch(r".*\.(c|cc|cpp|h|hh|hpp)$", p)
             and "Examples" not in p.replace(self.path, "")
         ]
+
         for file in files:
             self._load_enum_from_file(file)
 
     def _load_enum_from_file(self, path):
-        print(path)
         with open(path, encoding=self.encoding) as f:
             last_enum_id = -1
             mode = 0
