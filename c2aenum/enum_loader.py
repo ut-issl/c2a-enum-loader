@@ -11,11 +11,17 @@ class C2aEnum:
         self.path = c2a_src_path
         self.encoding = encoding
 
-        files = [p for p in glob.glob(self.path + "/**", recursive=True) if re.fullmatch(".*(\.(c|cc|cpp|h|hh|hpp))$", p) and not 'Examples' in p.replace(self.path, '') ]
+        files = [
+            p
+            for p in glob.glob(self.path + "/**", recursive=True)
+            if re.fullmatch(r".*(\.(c|cc|cpp|h|hh|hpp))$", p)
+            and "Examples" not in p.replace(self.path, "")
+        ]
         for file in files:
             self._load_enum_from_file(file)
 
     def _load_enum_from_file(self, path):
+        print(path)
         with open(path, encoding=self.encoding) as f:
             last_enum_id = -1
             mode = 0
@@ -26,12 +32,12 @@ class C2aEnum:
                 elif mode == 1 and line == "{":
                     mode += 1
                 elif mode == 2 and len(line) >= 1 and line[0] == "}":
-                    mode  = 0
+                    mode = 0
                     last_enum_id = -1
                 elif mode == 2:
                     # コメント削除 & 削除した後に末尾の空白削除
-                    line = re.sub("//.*", '', line).rstrip()
-                    p_with_id =  re.compile(r"^  (\w+) += +([-\w]+)")
+                    line = re.sub("//.*", "", line).rstrip()
+                    p_with_id = re.compile(r"^  (\w+) += +([-\w]+)")
                     p_without_id = re.compile(r"^  (\w+)")
                     m_with_id = p_with_id.match(line)
                     m_without_id = p_without_id.match(line)
@@ -51,6 +57,7 @@ class C2aEnum:
 
                     self.__setattr__(enum_name, enum_id)
                     last_enum_id = enum_id
+
 
 def load_enum(c2a_src_path, encoding) -> C2aEnum:
     c2a_enum = C2aEnum(c2a_src_path, encoding)
