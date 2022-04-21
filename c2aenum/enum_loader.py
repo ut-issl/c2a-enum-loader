@@ -8,16 +8,18 @@ import glob
 
 class C2aEnum:
     def __init__(self, c2a_src_path, encoding):
-        self.path = c2a_src_path
+        self.path = c2a_src_path.replace("//", "/")
+        search_path = (self.path + "/**").replace("//", "/")
         self.encoding = encoding
 
-        files_tmp = [p.replace("\\", "/") for p in glob.glob(self.path + "/**", recursive=True)]
+        files_tmp = [p.replace("\\", "/") for p in glob.glob(search_path, recursive=True)]
 
         files = [
             p
             for p in files_tmp
             if re.fullmatch(r".*\.(c|cc|cpp|h|hh|hpp)$", p)
             and "Examples" not in p.replace(self.path, "")
+            and ("src_core" in p.replace(self.path, "") or "src_user" in p.replace(self.path, ""))
         ]
 
         for file in files:
