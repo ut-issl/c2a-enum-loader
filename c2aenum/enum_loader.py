@@ -12,14 +12,21 @@ class C2aEnum:
         search_path = (self.path + "/**").replace("//", "/")
         self.encoding = encoding
 
-        files_tmp = [p.replace("\\", "/") for p in glob.glob(search_path, recursive=True)]
+        p_file_ext = re.compile(r".*\.(c|cc|cpp|h|hh|hpp)$")
+        files_tmp = [
+            file_path.replace("\\", "/")
+            for file_path in glob.glob(search_path, recursive=True)
+            if p_file_ext.fullmatch(file_path)
+        ]
 
         files = [
-            p
-            for p in files_tmp
-            if re.fullmatch(r".*\.(c|cc|cpp|h|hh|hpp)$", p)
-            and "Examples" not in p.replace(self.path, "")
-            and ("src_core" in p.replace(self.path, "") or "src_user" in p.replace(self.path, ""))
+            file_path
+            for file_path in files_tmp
+            if "Examples" not in file_path.replace(self.path, "")
+            and (
+                "src_core" in file_path.replace(self.path, "")
+                or "src_user" in file_path.replace(self.path, "")
+            )
         ]
 
         for file in files:
@@ -28,21 +35,24 @@ class C2aEnum:
     def _load_enum_from_file(self, path):
         with open(path, encoding=self.encoding) as f:
             last_enum_id = -1
-            mode = 0
+            mode = 0  # enum の中でどれを探している段階にいるか
+            p_typedef_enum = re.compile(r"^ *typedef *enum *\s$")
+            p_start_brackets = re.compile(r"^ *{.*\s$")
+            p_end_brackets = re.compile(r"^ *}.*\s$")
+            p_with_id = re.compile(r"^ *(\w+) *= *([-\w]+)")
+            p_without_id = re.compile(r"^ *(\w+)")
             for line in f.readlines():
-                line = line.rstrip()
-                if mode == 0 and line == "typedef enum":
+                if mode == 0 and p_typedef_enum.fullmatch(line):
                     mode += 1
-                elif mode == 1 and line == "{":
+                elif mode == 1 and p_start_brackets.fullmatch(line):
                     mode += 1
-                elif mode == 2 and len(line) >= 1 and line[0] == "}":
+                elif mode == 2 and p_end_brackets.fullmatch(line):
                     mode = 0
                     last_enum_id = -1
                 elif mode == 2:
                     # コメント削除 & 削除した後に末尾の空白削除
+                    # FIXME: 複数行の /* */ みたいなコメントは死ぬ
                     line = re.sub("//.*", "", line).rstrip()
-                    p_with_id = re.compile(r"^  (\w+) += +([-\w]+)")
-                    p_without_id = re.compile(r"^  (\w+)")
                     m_with_id = p_with_id.match(line)
                     m_without_id = p_without_id.match(line)
                     if not m_with_id and not m_without_id:
